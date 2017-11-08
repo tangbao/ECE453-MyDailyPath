@@ -16,12 +16,28 @@
         android:id="@+id/tv_location"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="location coord" />
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="location coordinate"
+        android:textColor="@android:color/black"
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/location_address_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="address" />
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="address"
+        android:textColor="@android:color/black" />
+
+    <ListView
+        android:id="@+id/checkin_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </LinearLayout >

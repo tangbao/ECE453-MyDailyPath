@@ -1,12 +1,15 @@
 package me.tbis.mydailypath;
 
+import android.app.Activity;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Geocoder;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.ResultReceiver;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -19,19 +22,29 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResponse;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+
+import java.text.DateFormat;
+import java.util.Date;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
@@ -40,14 +53,57 @@ public class MainActivity extends AppCompatActivity  {
 
     private static final int REQUEST_PERMISSIONS_REQUEST_CODE = 34;
 
-    private static final String ADDRESS_REQUESTED_KEY = "address-request-pending";
     private static final String LOCATION_ADDRESS_KEY = "location-address";
+
+    /**
+     * Constant used in the location settings dialog.
+     */
+    private static final int REQUEST_CHECK_SETTINGS = 0x1;
+
+    /**
+     * The desired interval for location updates. Inexact. Updates may be more or less frequent.
+     */
+    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
+
+    /**
+     * The fastest rate for active location updates. Exact. Updates will never be more frequent
+     * than this value.
+     */
+    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
+            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
+
+    // Keys for storing activity state in the Bundle.
+    private final static String KEY_LOCATION = "location";
+    private final static String KEY_LAST_UPDATED_TIME_STRING = "last-updated-time-string";
 
     //Provides the entry point to the Fused Location Provider API.
     private FusedLocationProviderClient mFusedLocationClient;
 
-    //Represents a geographical location.
-    protected Location mLastLocation;
+    /**
+     * Provides access to the Location Settings API.
+     */
+    private SettingsClient mSettingsClient;
+
+    /**
+     * Stores parameters for requests to the FusedLocationProviderApi.
+     */
+    private LocationRequest mLocationRequest;
+
+    /**
+     * Stores the types of location services the client is interested in using. Used for checking
+     * settings to determine if the device has optimal location settings.
+     */
+    private LocationSettingsRequest mLocationSettingsRequest;
+
+    /**
+     * Callback for Location events.
+     */
+    private LocationCallback mLocationCallback;
+
+    /**
+     * Represents a geographical location.
+     */
+    private Location mCurrentLocation; //I think it's the same thing as mLastLocation
 
     /**
      * The formatted location address.
@@ -68,73 +124,172 @@ public class MainActivity extends AppCompatActivity  {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        textView = findViewById(R.id.tv_location);
-        mLocationAddressTextView = findViewById(R.id.location_address_view);
+
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        textView = findViewById(R.id.tv_location);
+        mLocationAddressTextView = findViewById(R.id.location_address_view);
 
         mResultReceiver = new AddressResultReceiver(new Handler());
 
         // Set defaults, then update using values stored in the Bundle.
-        mAddressOutput = "";
+        //mAddressOutput = "";
         updateValuesFromBundle(savedInstanceState);
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        mSettingsClient = LocationServices.getSettingsClient(this);
+
+        // Kick off the process of building the LocationCallback, LocationRequest, and
+        // LocationSettingsRequest objects.
+        prepareLocationUpdate();
 
         //use fab to check in
+        //get date
+        //mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                Snackbar.make(view, "Check in Successfully", Snackbar.LENGTH_LONG).show();
             }
         });
     }
 
     @Override
-    protected void onStart(){
-        super.onStart();
+    public void onResume() {
+        super.onResume();
         if (!checkPermissions()) {
             requestPermissions();
         } else {
-            getLastLocation();
+            startLocationUpdates();
+        }
+        updateLocationUI();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Remove location updates to save battery.
+        stopLocationUpdates();
+    }
+
+    private void prepareLocationUpdate(){
+        //set update interval and fastest update interval
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(UPDATE_INTERVAL_IN_MILLISECONDS);
+        mLocationRequest.setFastestInterval(FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        //Creates a callback for receiving location events.
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+
+                mCurrentLocation = locationResult.getLastLocation();
+                // Determine whether a Geocoder is available.
+                if (!Geocoder.isPresent()) {
+                    showSnackbar(getString(R.string.no_geocoder_available));
+                    return;
+                }
+
+                startIntentService();
+                updateLocationUI();
+            }
+        };
+
+        //build locations settings request
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addLocationRequest(mLocationRequest);
+        mLocationSettingsRequest = builder.build();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            // Check for the integer request code originally supplied to startResolutionForResult().
+            case REQUEST_CHECK_SETTINGS:
+                switch (resultCode) {
+                    case Activity.RESULT_OK:
+                        Log.i(TAG, "User agreed to make required location settings changes.");
+                        // Nothing to do. startLocationupdates() gets called in onResume again.
+                        break;
+                    case Activity.RESULT_CANCELED:
+                        Log.i(TAG, "User chose not to make required location settings changes.");
+                        updateLocationUI();
+                        break;
+                }
+                break;
         }
     }
 
     /**
-     * Provides a simple way of getting a device's location and is well suited for
-     * applications that do not require a fine-grained location and that do not need location
-     * updates. Gets the best and most recent location currently available, which may be null
-     * in rare cases when a location is not available.
-     * <p>
-     * Note: this method should be called after location permission has been granted.
+     * Requests location updates from the FusedLocationApi. Note: we don't call this unless location
+     * runtime permission has been granted.
      */
     @SuppressWarnings("MissingPermission")
-    private void getLastLocation() {
-        mFusedLocationClient.getLastLocation()
-                .addOnCompleteListener(this, new OnCompleteListener<Location>() {
+    private void startLocationUpdates() {
+        // Begin by checking if the device has the necessary location settings.
+        mSettingsClient.checkLocationSettings(mLocationSettingsRequest)
+                .addOnSuccessListener(this, new OnSuccessListener<LocationSettingsResponse>() {
                     @Override
-                    public void onComplete(@NonNull Task<Location> task) {
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            mLastLocation = task.getResult();
-                            textView.setText("Latitude: " + mLastLocation.getLatitude() + ", Longitude: " + mLastLocation.getLongitude());
+                    public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
+                        Log.i(TAG, "All location settings are satisfied.");
 
-                            // Determine whether a Geocoder is available.
-                            if (!Geocoder.isPresent()) {
-                                showSnackbar(getString(R.string.no_geocoder_available));
-                                return;
-                            }
-                            // If the user pressed the fetch address button before we had the location,
-                            // this will be set to true indicating that we should kick off the intent
-                            // service after fetching the location.
-                            startIntentService();
-                        } else {
-                            Log.w(TAG, "getLastLocation:exception", task.getException());
-                            showSnackbar(getString(R.string.no_location_detected));
+                        //noinspection MissingPermission
+                        mFusedLocationClient.requestLocationUpdates(mLocationRequest,
+                                mLocationCallback, Looper.myLooper());
+                        updateLocationUI();
+                    }
+                })
+                .addOnFailureListener(this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        int statusCode = ((ApiException) e).getStatusCode();
+                        switch (statusCode) {
+                            case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                                Log.i(TAG, "Location settings are not satisfied. Attempting to upgrade " +
+                                        "location settings ");
+                                try {
+                                    // Show the dialog by calling startResolutionForResult(), and check the
+                                    // result in onActivityResult().
+                                    ResolvableApiException rae = (ResolvableApiException) e;
+                                    rae.startResolutionForResult(MainActivity.this, REQUEST_CHECK_SETTINGS);
+                                } catch (IntentSender.SendIntentException sie) {
+                                    Log.i(TAG, "PendingIntent unable to execute request.");
+                                }
+                                break;
+                            case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                                String errorMessage = "Location settings are inadequate, and cannot be " +
+                                        "fixed here. Fix in Settings.";
+                                Log.e(TAG, errorMessage);
+                                Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                         }
+
+                        updateLocationUI();
                     }
                 });
+    }
+
+    /**
+     * Sets the value of the UI fields for the location latitude, longitude and last update time.
+     */
+    private void updateLocationUI() {
+        if (mCurrentLocation != null) {
+            textView.setText("Latitude: " + mCurrentLocation.getLatitude() +
+                    ", Longitude: " + mCurrentLocation.getLongitude());
+        }
+        if(mAddressOutput != null){
+            mLocationAddressTextView.setText(mAddressOutput);
+        }
+    }
+
+    /**
+     * Removes location updates from the FusedLocationApi.
+     */
+    private void stopLocationUpdates() {
+        mFusedLocationClient.removeLocationUpdates(mLocationCallback);
     }
 
     /**
@@ -142,18 +297,10 @@ public class MainActivity extends AppCompatActivity  {
      * fetching an address.
      */
     private void startIntentService() {
-        // Create an intent for passing to the intent service responsible for fetching the address.
         Intent intent = new Intent(this, FetchAddressIntentService.class);
-
         // Pass the result receiver as an extra to the service.
         intent.putExtra(Constants.RECEIVER, mResultReceiver);
-
-        // Pass the location data as an extra to the service.
-        intent.putExtra(Constants.LOCATION_DATA_EXTRA, mLastLocation);
-
-        // Start the service. If the service isn't already running, it is instantiated and started
-        // (creating a process for it if needed); if it is running then it remains running. The
-        // service kills itself automatically once all intents are processed.
+        intent.putExtra(Constants.LOCATION_DATA_EXTRA, mCurrentLocation);
         startService(intent);
     }
 
@@ -174,7 +321,7 @@ public class MainActivity extends AppCompatActivity  {
 
             // Display the address string or an error message sent from the intent service.
             mAddressOutput = resultData.getString(Constants.RESULT_DATA_KEY);
-            mLocationAddressTextView.setText(mAddressOutput);
+            updateLocationUI();
 
             // Show a toast message if an address was found.
             if (resultCode == Constants.SUCCESS_RESULT) {
@@ -184,17 +331,26 @@ public class MainActivity extends AppCompatActivity  {
         }
     }
 
-    /**
-     * Updates fields based on data stored in the bundle.
-     */
+    //store values to instance
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+
+        // Save the address string.
+        savedInstanceState.putString(LOCATION_ADDRESS_KEY, mAddressOutput);
+        savedInstanceState.putParcelable(KEY_LOCATION, mCurrentLocation);
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    //recover values
     private void updateValuesFromBundle(Bundle savedInstanceState) {
         if (savedInstanceState != null) {
-            // Check savedInstanceState to see if the location address string was previously found
-            // and stored in the Bundle. If it was found, display the address string in the UI.
             if (savedInstanceState.keySet().contains(LOCATION_ADDRESS_KEY)) {
                 mAddressOutput = savedInstanceState.getString(LOCATION_ADDRESS_KEY);
-                mLocationAddressTextView.setText(mAddressOutput);
             }
+            if (savedInstanceState.keySet().contains(KEY_LOCATION)) {
+                mCurrentLocation = savedInstanceState.getParcelable(KEY_LOCATION);
+            }
+            updateLocationUI();
         }
     }
 
@@ -228,9 +384,7 @@ public class MainActivity extends AppCompatActivity  {
 
         } else {
             Log.i(TAG, "Requesting permission");
-            // Request permission. It's possible this can be auto answered if device policy
-            // sets the permission in a given state or the user denied the permission
-            // previously and checked "Never ask again".
+            // Request permission.
             startLocationPermissionRequest();
         }
     }
@@ -255,19 +409,9 @@ public class MainActivity extends AppCompatActivity  {
                 Log.i(TAG, "User interaction was cancelled.");
             } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Permission granted.
-                getLastLocation();
+                startLocationUpdates();
             } else {
                 // Permission denied.
-
-                // Notify the user via a SnackBar that they have rejected a core permission for the
-                // app, which makes the Activity useless. In a real app, core permissions would
-                // typically be best requested during a welcome-screen flow.
-
-                // Additionally, it is important to remember that a permission might have been
-                // rejected without asking the user for permission (device policy or "Never ask
-                // again" prompts). Therefore, a user interface affordance is typically implemented
-                // when permissions are denied. Otherwise, your app could appear unresponsive to
-                // touches or interactions which have required permissions.
                 showSnackbar(R.string.permission_denied_explanation, R.string.settings,
                         new View.OnClickListener() {
                             @Override
@@ -287,7 +431,7 @@ public class MainActivity extends AppCompatActivity  {
         }
     }
 
-    //===================print log helpers============================
+    //===================log print helpers============================
     private void showToast(String text) {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
     }
