@@ -1,7 +1,7 @@
 package me.tbis.mydailypath;
 
 /**
- * Created by tzzma on 2017/11/6.
+ * Created by Zhognze Tang on 2017/11/6.
  *
  */
 

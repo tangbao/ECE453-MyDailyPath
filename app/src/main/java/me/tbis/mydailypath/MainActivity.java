@@ -22,6 +22,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -74,7 +75,6 @@ public class MainActivity extends AppCompatActivity  {
 
     // Keys for storing activity state in the Bundle.
     private final static String KEY_LOCATION = "location";
-    private final static String KEY_LAST_UPDATED_TIME_STRING = "last-updated-time-string";
 
     //Provides the entry point to the Fused Location Provider API.
     private FusedLocationProviderClient mFusedLocationClient;
@@ -118,7 +118,9 @@ public class MainActivity extends AppCompatActivity  {
 
     private TextView textView; //show GPS coordinate
     private TextView mLocationAddressTextView; //show address
+    ListView mCheckinList; //show check in list
     private Toolbar toolbar;
+    private CheckInMethods checkInMethods;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,6 +132,9 @@ public class MainActivity extends AppCompatActivity  {
 
         textView = findViewById(R.id.tv_location);
         mLocationAddressTextView = findViewById(R.id.location_address_view);
+
+        mCheckinList = findViewById(R.id.checkin_list);
+
 
         mResultReceiver = new AddressResultReceiver(new Handler());
 
@@ -151,6 +156,9 @@ public class MainActivity extends AppCompatActivity  {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                checkInMethods = new CheckInMethods(MainActivity.this);
+                checkInMethods.add("test", mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
+                        DateFormat.getTimeInstance().format(new Date()), mAddressOutput);
                 Snackbar.make(view, "Check in Successfully", Snackbar.LENGTH_LONG).show();
             }
         });
@@ -277,8 +285,8 @@ public class MainActivity extends AppCompatActivity  {
      */
     private void updateLocationUI() {
         if (mCurrentLocation != null) {
-            textView.setText("Latitude: " + mCurrentLocation.getLatitude() +
-                    ", Longitude: " + mCurrentLocation.getLongitude());
+            textView.setText("Longitude: " + mCurrentLocation.getLongitude() +
+                    ", Latitude: " + mCurrentLocation.getLatitude());
         }
         if(mAddressOutput != null){
             mLocationAddressTextView.setText(mAddressOutput);
