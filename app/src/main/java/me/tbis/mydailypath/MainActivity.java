@@ -28,6 +28,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.TranslateAnimation;
 import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -60,7 +61,7 @@ import java.util.Map;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
-public class MainActivity extends AppCompatActivity{
+public class MainActivity extends AppCompatActivity implements MyDialog.Callback{
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private static final int REQUEST_PERMISSIONS_REQUEST_CODE = 34;
@@ -126,6 +127,8 @@ public class MainActivity extends AppCompatActivity{
      */
     private AddressResultReceiver mResultReceiver;
 
+    //the custom name get from call back
+    private String custom_name;
 
     private TextView textView; //show GPS coordinate
     private TextView mLocationAddressTextView; //show address
@@ -167,6 +170,13 @@ public class MainActivity extends AppCompatActivity{
         list = checkInMethods.getAll();
         adapter = new MyAdapter(MainActivity.this, list);
         mCheckinList.setAdapter(adapter);
+        mCheckinList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                //todo 删除？
+                return true;
+            }
+        });
 
         mResultReceiver = new AddressResultReceiver(new Handler());
 
@@ -204,15 +214,22 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onClick(View view) {
                 animateFAB();
-                String name = "test";
-                SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
-                String date = sDateFormat.format(new java.util.Date());
-                checkInMethods.add(name, mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
-                        date, mAddressOutput);
-                UpdateListView(name, date);
-                Snackbar.make(view, "Check in Successfully", Snackbar.LENGTH_LONG).show();
+
+                MyDialog myDialog = new MyDialog();
+                myDialog.show(getFragmentManager());
             }
         });
+    }
+
+    //implement the call back fun
+    public void onDialogClick(String customName){
+        custom_name = customName;
+        SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
+        String date = sDateFormat.format(new java.util.Date());
+        checkInMethods.add(custom_name, mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
+                date, mAddressOutput);
+        UpdateListView(custom_name, date);
+        Snackbar.make(getWindow().getDecorView(), "Check in Successfully", Snackbar.LENGTH_LONG).show();
     }
 
     @Override

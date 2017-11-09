@@ -56,7 +56,7 @@ class MyAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        holder.mNameAndTime.setText(mList.get(position).get("name") + mList.get(position).get("time"));
+        holder.mNameAndTime.setText(mList.get(position).get("name") + " " + mList.get(position).get("time"));
         holder.mGPSCoordinate.setText(mList.get(position).get("coordinate"));
         holder.mAddress.setText(mList.get(position).get("address"));
 
