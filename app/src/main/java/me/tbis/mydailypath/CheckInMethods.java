@@ -26,7 +26,7 @@ public class CheckInMethods {
         helper = new DBOpenHelper(context);
     }
 
-    void add(String name, String longitude, String latitude, String time, String address){
+    long add(String name, String longitude, String latitude, String time, String address){
         SQLiteDatabase db = helper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put("name", name);
@@ -34,17 +34,25 @@ public class CheckInMethods {
         values.put("latitude", latitude);
         values.put("time", time);
         values.put("address", address);
-        db.insert("checkin", null, values);
+        long _id = db.insert("checkin", null, values);
+        db.close();
+        return _id;
+    }
+
+    void delete(String _id){
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.delete("checkin", "_id=?", new String[]{_id});
         db.close();
     }
 
     List<Map<String, String>> getAll(){
         List<Map<String, String>> checkins = new ArrayList<>();
         SQLiteDatabase db = helper.getReadableDatabase();
-        Cursor cursor = db.query("checkin", new String[]{"name", "longitude", "latitude", "time", "address"},
+        Cursor cursor = db.query("checkin", new String[]{"_id", "name", "longitude", "latitude", "time", "address"},
                 null, null, null, null, null);
         while(cursor.moveToNext()){
             Map<String, String> map = new HashMap<>();
+            map.put("_id", cursor.getLong(cursor.getColumnIndex("_id"))+"");
             map.put("name", cursor.getString(cursor.getColumnIndex("name")));
             map.put("time", cursor.getString(cursor.getColumnIndex("time")));
             map.put("coordinate", cursor.getString(cursor.getColumnIndex("longitude")) + ", " + cursor.getString(cursor.getColumnIndex("latitude")));

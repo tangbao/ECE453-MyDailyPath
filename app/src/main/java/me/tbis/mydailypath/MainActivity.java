@@ -173,7 +173,9 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         mCheckinList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
-                //todo 删除？
+                checkInMethods.delete(list.get(i).get("_id"));
+                list.remove(i);
+                adapter.notifyDataSetChanged();
                 return true;
             }
         });
@@ -208,6 +210,10 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
             @Override
             public void onClick(View view) {
                 animateFAB();
+
+                Intent intent = new Intent(MainActivity.this, MapsActivity.class);
+                startActivity(intent);
+
             }
         });
         fab2.setOnClickListener(new View.OnClickListener() {
@@ -226,9 +232,9 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         custom_name = customName;
         SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
         String date = sDateFormat.format(new java.util.Date());
-        checkInMethods.add(custom_name, mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
+        long _id = checkInMethods.add(custom_name, mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
                 date, mAddressOutput);
-        UpdateListView(custom_name, date);
+        UpdateListView(_id, custom_name, date);
         Snackbar.make(getWindow().getDecorView(), "Check in Successfully", Snackbar.LENGTH_LONG).show();
     }
 
@@ -362,8 +368,9 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
     }
 
     //update listview when add a new check in
-    private void UpdateListView(String name, String date){
+    private void UpdateListView(long _id, String name, String date){
         Map<String, String> map = new HashMap<>();
+        map.put("_id", _id+"");
         map.put("name", name);
         map.put("time", date);
         map.put("coordinate", mCurrentLocation.getLatitude() + ", " + mCurrentLocation.getLongitude());

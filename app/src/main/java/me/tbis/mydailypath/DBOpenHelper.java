@@ -18,7 +18,7 @@ public class DBOpenHelper extends SQLiteOpenHelper{
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("create table checkin (id integer primary key autoincrement, name text, longitude text, latitude text, time text, address text) ");
+        db.execSQL("create table checkin (_id integer primary key autoincrement, name text, longitude text, latitude text, time text, address text) ");
     }
 
     @Override
