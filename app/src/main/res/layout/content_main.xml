@@ -18,9 +18,8 @@
         android:layout_height="wrap_content"
         android:paddingTop="8dp"
         android:paddingBottom="4dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:text="location coordinate"
+        android:gravity="center"
+        android:text="Loading location coordinate..."
         android:textColor="@android:color/black"
         android:textSize="14sp" />
 
@@ -29,15 +28,28 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="4dp"
-        android:paddingBottom="8dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:text="address"
+        android:paddingBottom="4dp"
+        android:gravity="center"
+        android:text="Loading address..."
         android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="8dp"
+        android:paddingTop="8dp"
+        android:text="Your Check-in History"
+        android:textColor="@android:color/black"
+        android:textSize="20sp" />
+
 
     <ListView
         android:id="@+id/checkin_list"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent" >
+
+    </ListView>
 
 </LinearLayout >

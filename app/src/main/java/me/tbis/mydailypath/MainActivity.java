@@ -18,10 +18,16 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.Layout;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.TranslateAnimation;
+import android.widget.Adapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,11 +51,16 @@ import com.google.android.gms.tasks.Task;
 
 
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
-public class MainActivity extends AppCompatActivity  {
+public class MainActivity extends AppCompatActivity{
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private static final int REQUEST_PERMISSIONS_REQUEST_CODE = 34;
@@ -118,9 +129,17 @@ public class MainActivity extends AppCompatActivity  {
 
     private TextView textView; //show GPS coordinate
     private TextView mLocationAddressTextView; //show address
-    ListView mCheckinList; //show check in list
+    private TextView mCloud; //mengban
+    private ListView mCheckinList; //show check in list
+    private MyAdapter adapter;
+    private List<Map<String, String>> list;
     private Toolbar toolbar;
     private CheckInMethods checkInMethods;
+
+    //fabs with animation
+    private Boolean isFabOpen = false;
+    private FloatingActionButton fab,fab1,fab2;
+    private Animation fab_open,fab_close,rotate_forward,rotate_backward;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,13 +152,25 @@ public class MainActivity extends AppCompatActivity  {
         textView = findViewById(R.id.tv_location);
         mLocationAddressTextView = findViewById(R.id.location_address_view);
 
-        mCheckinList = findViewById(R.id.checkin_list);
+        mCloud = findViewById(R.id.cloud);
+        mCloud.setAlpha(0.75f); //TODO 这里碰到了一个值得记录的玄学问题
+        mCloud.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                animateFAB();
+            }
+        });
 
+        checkInMethods = new CheckInMethods(MainActivity.this);
+
+        mCheckinList = findViewById(R.id.checkin_list);
+        list = checkInMethods.getAll();
+        adapter = new MyAdapter(MainActivity.this, list);
+        mCheckinList.setAdapter(adapter);
 
         mResultReceiver = new AddressResultReceiver(new Handler());
 
         // Set defaults, then update using values stored in the Bundle.
-        //mAddressOutput = "";
         updateValuesFromBundle(savedInstanceState);
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -150,15 +181,35 @@ public class MainActivity extends AppCompatActivity  {
         prepareLocationUpdate();
 
         //use fab to check in
-        //get date
-        //mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
-        FloatingActionButton fab = findViewById(R.id.fab);
+        fab = findViewById(R.id.fab);
+        fab1 = findViewById(R.id.fab1);
+        fab2 = findViewById(R.id.fab2);
+        fab_open = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_open);
+        fab_close = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.fab_close);
+        rotate_forward = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.rotate_forward);
+        rotate_backward = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.rotate_backward);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                checkInMethods = new CheckInMethods(MainActivity.this);
-                checkInMethods.add("test", mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
-                        DateFormat.getTimeInstance().format(new Date()), mAddressOutput);
+                animateFAB();
+            }
+        });
+        fab1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                animateFAB();
+            }
+        });
+        fab2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                animateFAB();
+                String name = "test";
+                SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
+                String date = sDateFormat.format(new java.util.Date());
+                checkInMethods.add(name, mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
+                        date, mAddressOutput);
+                UpdateListView(name, date);
                 Snackbar.make(view, "Check in Successfully", Snackbar.LENGTH_LONG).show();
             }
         });
@@ -291,6 +342,17 @@ public class MainActivity extends AppCompatActivity  {
         if(mAddressOutput != null){
             mLocationAddressTextView.setText(mAddressOutput);
         }
+    }
+
+    //update listview when add a new check in
+    private void UpdateListView(String name, String date){
+        Map<String, String> map = new HashMap<>();
+        map.put("name", name);
+        map.put("time", date);
+        map.put("coordinate", mCurrentLocation.getLatitude() + ", " + mCurrentLocation.getLongitude());
+        map.put("address", mAddressOutput);
+        list.add(map);
+        adapter.notifyDataSetChanged();
     }
 
     /**
@@ -473,6 +535,39 @@ public class MainActivity extends AppCompatActivity  {
 
 
     //===================================================
+    public void animateFAB(){
+
+        if(isFabOpen){
+            fab.startAnimation(rotate_backward);
+            fab1.startAnimation(fab_close);
+            fab2.startAnimation(fab_close);
+            fab1.setClickable(false);
+            fab2.setClickable(false);
+            mCloud.setVisibility(View.GONE);
+            AlphaAnimation alphaAnimation = new AlphaAnimation(1, 0);
+            alphaAnimation.setDuration(300);
+            alphaAnimation.setFillAfter(true);
+            mCloud.startAnimation(alphaAnimation);
+            mCloud.setClickable(false);
+            isFabOpen = false;
+        } else {
+            fab.startAnimation(rotate_forward);
+            fab1.startAnimation(fab_open);
+            fab2.startAnimation(fab_open);
+            fab1.setClickable(true);
+            fab2.setClickable(true);
+            mCloud.setVisibility(View.VISIBLE);
+            AlphaAnimation alphaAnimation = new AlphaAnimation(0, 1);
+            alphaAnimation.setDuration(300);
+            alphaAnimation.setFillAfter(true);
+            mCloud.startAnimation(alphaAnimation);
+            mCloud.setClickable(true);
+            isFabOpen = true;
+        }
+    }
+
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
