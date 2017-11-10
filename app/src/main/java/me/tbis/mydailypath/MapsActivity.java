@@ -13,6 +13,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
@@ -21,10 +22,11 @@ import java.util.Map;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback , MyDialog.Callback{
 
     private GoogleMap mMap;
     private CheckInMethods checkInMethods;
+    private Marker marker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +59,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.setMyLocationEnabled(true);
         }
 
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                marker = mMap.addMarker(new MarkerOptions().position(latLng).draggable(true));
+                mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                    @Override
+                    public boolean onMarkerClick(Marker marker) {
+                        if (marker.isDraggable()){
+                            MyDialog myDialog = new MyDialog();
+                            myDialog.show(getFragmentManager());
+                        }
+                        return false;
+                    }
+                });
+            }
+        });
+
         // Move camera to where you are and move the camera
         Intent intent = getIntent();
         LatLng loc_now = new LatLng(intent.getDoubleExtra("weidu",0), intent.getDoubleExtra("jingdu",0));
@@ -68,11 +87,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.addMarker(new MarkerOptions().position(latLng).title(list1.get(i).get("name")));
         }
 
-
         List<Map<String, String>> list2 = checkInMethods.getAllMarker();
         for(int i = 0; i<list2.size(); i++){
             LatLng latLng = new LatLng(Double.parseDouble(list2.get(i).get("latitude")), Double.parseDouble(list2.get(i).get("longitude")));
             mMap.addMarker(new MarkerOptions().position(latLng).title(list2.get(i).get("name")));
+        }
+    }
+
+    public void onDialogClick(String customName){
+        if (!customName.isEmpty()){
+            marker.setTitle(customName);
+            marker.setDraggable(false);
+            LatLng ll = marker.getPosition();//get position now
+            checkInMethods.addMaker(customName, ll.longitude+"",ll.latitude+"");
         }
     }
 }
