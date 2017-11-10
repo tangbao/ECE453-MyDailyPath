@@ -26,7 +26,7 @@ public class CheckInMethods {
         helper = new DBOpenHelper(context);
     }
 
-    long add(String name, String longitude, String latitude, String time, String address){
+    long addCheckin(String name, String longitude, String latitude, String time, String address){
         SQLiteDatabase db = helper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put("name", name);
@@ -45,7 +45,7 @@ public class CheckInMethods {
         db.close();
     }
 
-    List<Map<String, String>> getAll(){
+    List<Map<String, String>> getAllCheckin(){
         List<Map<String, String>> checkins = new ArrayList<>();
         SQLiteDatabase db = helper.getReadableDatabase();
         Cursor cursor = db.query("checkin", new String[]{"_id", "name", "longitude", "latitude", "time", "address"},
@@ -55,12 +55,42 @@ public class CheckInMethods {
             map.put("_id", cursor.getLong(cursor.getColumnIndex("_id"))+"");
             map.put("name", cursor.getString(cursor.getColumnIndex("name")));
             map.put("time", cursor.getString(cursor.getColumnIndex("time")));
-            map.put("coordinate", cursor.getString(cursor.getColumnIndex("longitude")) + ", " + cursor.getString(cursor.getColumnIndex("latitude")));
+            map.put("longitude", cursor.getString(cursor.getColumnIndex("longitude")));
+            map.put("latitude", cursor.getString(cursor.getColumnIndex("latitude")));
             map.put("address", cursor.getString(cursor.getColumnIndex("address")));
             checkins.add(map);
         }
         cursor.close();
         db.close();
         return checkins;
+    }
+
+    long addMaker(String name, String longitude, String latitude){
+        SQLiteDatabase db = helper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("name", name);
+        values.put("longitude", longitude);
+        values.put("latitude", latitude);
+        long _id = db.insert("marker", null, values);
+        db.close();
+        return _id;
+    }
+
+    List<Map<String, String>> getAllMarker(){
+        List<Map<String, String>> markers = new ArrayList<>();
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor cursor = db.query("marker", new String[]{"_id", "name", "longitude, Latitude"},
+                null,null,null,null,null);
+        while(cursor.moveToNext()){
+            Map<String, String> map = new HashMap<>();
+            map.put("_id", cursor.getLong(cursor.getColumnIndex("_id"))+"");
+            map.put("name", cursor.getString(cursor.getColumnIndex("name")));
+            map.put("longitude", cursor.getString(cursor.getColumnIndex("longitude")));
+            map.put("latitude", cursor.getString(cursor.getColumnIndex("latitude")));
+            markers.add(map);
+        }
+        cursor.close();
+        db.close();
+        return markers;
     }
 }

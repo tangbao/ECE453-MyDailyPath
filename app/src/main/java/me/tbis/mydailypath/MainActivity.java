@@ -1,6 +1,7 @@
 package me.tbis.mydailypath;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
@@ -13,16 +14,20 @@ import android.os.Looper;
 import android.os.ResultReceiver;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Layout;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -167,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         checkInMethods = new CheckInMethods(MainActivity.this);
 
         mCheckinList = findViewById(R.id.checkin_list);
-        list = checkInMethods.getAll();
+        list = checkInMethods.getAllCheckin();
         adapter = new MyAdapter(MainActivity.this, list);
         mCheckinList.setAdapter(adapter);
         mCheckinList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
@@ -211,16 +216,20 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
             public void onClick(View view) {
                 animateFAB();
 
-                Intent intent = new Intent(MainActivity.this, MapsActivity.class);
-                startActivity(intent);
+                if(mCurrentLocation!=null){
+                    Intent intent = new Intent(MainActivity.this, MapsActivity.class);
+                    intent.putExtra("weidu", mCurrentLocation.getLatitude());
+                    intent.putExtra("jingdu", mCurrentLocation.getLongitude());
+                    startActivity(intent);
+                }else{
+                    showToast("Please wait for loading the location.");
+                }
 
             }
         });
         fab2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                animateFAB();
-
                 MyDialog myDialog = new MyDialog();
                 myDialog.show(getFragmentManager());
             }
@@ -230,12 +239,13 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
     //implement the call back fun
     public void onDialogClick(String customName){
         custom_name = customName;
+        animateFAB();
         SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
         String date = sDateFormat.format(new java.util.Date());
-        long _id = checkInMethods.add(custom_name, mCurrentLocation.getLatitude() + "", mCurrentLocation.getLongitude() + "",
+        long _id = checkInMethods.addCheckin(custom_name, mCurrentLocation.getLongitude() + "", mCurrentLocation.getLatitude() + "",
                 date, mAddressOutput);
         UpdateListView(_id, custom_name, date);
-        Snackbar.make(getWindow().getDecorView(), "Check in Successfully", Snackbar.LENGTH_LONG).show();
+        showSnackbar("Check in successfully");
     }
 
     @Override
@@ -359,8 +369,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
      */
     private void updateLocationUI() {
         if (mCurrentLocation != null) {
-            textView.setText("Longitude: " + mCurrentLocation.getLongitude() +
-                    ", Latitude: " + mCurrentLocation.getLatitude());
+            textView.setText("Latitude: " + mCurrentLocation.getLatitude()+
+                    ", Longitude: " + mCurrentLocation.getLongitude() );
         }
         if(mAddressOutput != null){
             mLocationAddressTextView.setText(mAddressOutput);
@@ -373,7 +383,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         map.put("_id", _id+"");
         map.put("name", name);
         map.put("time", date);
-        map.put("coordinate", mCurrentLocation.getLatitude() + ", " + mCurrentLocation.getLongitude());
+        map.put("latitude", mCurrentLocation.getLatitude()+"");
+        map.put("longitude", mCurrentLocation.getLongitude()+"");
         map.put("address", mAddressOutput);
         list.add(map);
         adapter.notifyDataSetChanged();
@@ -536,10 +547,10 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
      * @param text The Snackbar text.
      */
     private void showSnackbar(final String text) {
-        View container = findViewById(R.id.main_activity_container);
-        if (container != null) {
-            Snackbar.make(container, text, Snackbar.LENGTH_LONG).show();
-        }
+        //View container = findViewById(R.id.main_activity_container);
+        //if (container != null) {
+            Snackbar.make(textView, text, Snackbar.LENGTH_LONG).show();
+        //}
     }
 
     /**
@@ -551,7 +562,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
      */
     private void showSnackbar(final int mainTextStringId, final int actionStringId,
                               View.OnClickListener listener) {
-        Snackbar.make(findViewById(android.R.id.content),
+        //Snackbar.make(findViewById(android.R.id.content),
+        Snackbar.make(textView,
                 getString(mainTextStringId),
                 Snackbar.LENGTH_INDEFINITE)
                 .setAction(getString(actionStringId), listener).show();
