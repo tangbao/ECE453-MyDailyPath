@@ -32,6 +32,9 @@
         android:text=""
         android:gravity="center"
         android:paddingBottom="8dp"
+
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
         android:layout_weight="1"
         android:textColor="@android:color/black" />
 </LinearLayout>

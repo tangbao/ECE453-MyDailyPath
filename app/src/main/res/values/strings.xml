@@ -21,6 +21,9 @@
     <string name="permission_denied_explanation">Permission was denied, but is needed for core
         functionality.</string>
 
-    <string name="settings">Settings</string>
+    <string name="settings">Settings</string>>
+    <string name="menu_checkin">Check in</string>
+    <string name="menu_map">Map</string>
+
     <string name="title_activity_maps">Map</string>
 </resources>

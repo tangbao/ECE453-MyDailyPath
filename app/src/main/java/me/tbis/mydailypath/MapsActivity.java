@@ -6,6 +6,7 @@ import android.graphics.Point;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -84,7 +85,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         List<Map<String, String>> list1 = checkInMethods.getAllCheckin();
         for(int i = 0; i<list1.size(); i++){
             LatLng latLng = new LatLng(Double.parseDouble(list1.get(i).get("latitude")), Double.parseDouble(list1.get(i).get("longitude")));
-            mMap.addMarker(new MarkerOptions().position(latLng).title(list1.get(i).get("name")));
+            mMap.addMarker(new MarkerOptions().position(latLng).title(list1.get(i).get("name")).snippet(list1.get(i).get("address")));
         }
 
         List<Map<String, String>> list2 = checkInMethods.getAllMarker();
@@ -100,6 +101,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             marker.setDraggable(false);
             LatLng ll = marker.getPosition();//get position now
             checkInMethods.addMaker(customName, ll.longitude+"",ll.latitude+"");
+        }else{
+            Toast.makeText(this, "The marker must have a name, or it will not be saved", Toast.LENGTH_LONG).show();
         }
     }
 }

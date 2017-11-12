@@ -18,6 +18,8 @@
         android:layout_height="wrap_content"
         android:paddingTop="8dp"
         android:paddingBottom="4dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
         android:gravity="center"
         android:text="Loading location coordinate..."
         android:textColor="@android:color/black"
@@ -29,6 +31,8 @@
         android:layout_height="wrap_content"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
         android:gravity="center"
         android:text="Loading address..."
         android:textColor="@android:color/black" />
@@ -48,7 +52,8 @@
     <ListView
         android:id="@+id/checkin_list"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        android:layout_height="match_parent"
+        android:dividerHeight="2dp" >
 
     </ListView>
 

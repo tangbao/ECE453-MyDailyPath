@@ -215,15 +215,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
             @Override
             public void onClick(View view) {
                 animateFAB();
-
-                if(mCurrentLocation!=null){
-                    Intent intent = new Intent(MainActivity.this, MapsActivity.class);
-                    intent.putExtra("weidu", mCurrentLocation.getLatitude());
-                    intent.putExtra("jingdu", mCurrentLocation.getLongitude());
-                    startActivity(intent);
-                }else{
-                    showToast("Please wait for loading the location.");
-                }
+                showMap();
 
             }
         });
@@ -239,7 +231,9 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
     //implement the call back fun
     public void onDialogClick(String customName){
         custom_name = customName;
-        animateFAB();
+        if(isFabOpen){
+            animateFAB();
+        }
         SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
         String date = sDateFormat.format(new java.util.Date());
         long _id = checkInMethods.addCheckin(custom_name, mCurrentLocation.getLongitude() + "", mCurrentLocation.getLatitude() + "",
@@ -390,6 +384,18 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         adapter.notifyDataSetChanged();
     }
 
+    //show google map
+    private void showMap(){
+        if(mCurrentLocation!=null){
+            Intent intent = new Intent(MainActivity.this, MapsActivity.class);
+            intent.putExtra("weidu", mCurrentLocation.getLatitude());
+            intent.putExtra("jingdu", mCurrentLocation.getLongitude());
+            startActivity(intent);
+        }else{
+            showToast("Please wait for loading the location.");
+        }
+    }
+
     /**
      * Removes location updates from the FusedLocationApi.
      */
@@ -430,7 +436,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
 
             // Show a toast message if an address was found.
             if (resultCode == Constants.SUCCESS_RESULT) {
-                showToast(getString(R.string.address_found));
+                //showToast(getString(R.string.address_found));
+                Log.d(TAG, getString(R.string.address_found));
             }
 
         }
@@ -571,8 +578,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
 
 
     //===================================================
-    public void animateFAB(){
-
+    private void animateFAB(){
         if(isFabOpen){
             fab.startAnimation(rotate_backward);
             fab1.startAnimation(fab_close);
@@ -602,8 +608,6 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         }
     }
 
-
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -619,7 +623,12 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_checkin) {
+            MyDialog myDialog = new MyDialog();
+            myDialog.show(getFragmentManager());
+            return true;
+        }else if(id == R.id.action_map){
+            showMap();
             return true;
         }
 
