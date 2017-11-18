@@ -63,14 +63,21 @@ public class FetchAddressIntentService extends IntentService {
 
         // Get the location passed to this service through an extra.
         Location location = intent.getParcelableExtra(Constants.LOCATION_DATA_EXTRA);
+        double longitude = intent.getDoubleExtra(Constants.LOCATION_DATA_LONGITUDE,999);
+        double latitude = intent.getDoubleExtra(Constants.LOCATION_DATA_LATITUDE, 999);
 
         // Make sure that the location data was really sent over through an extra. If it wasn't,
         // send an error error message and return.
         if (location == null) {
-            errorMessage = getString(R.string.no_location_data_provided);
-            Log.wtf(TAG, errorMessage);
-            deliverResultToReceiver(Constants.FAILURE_RESULT, errorMessage);
-            return;
+            if(longitude > 200){
+                errorMessage = getString(R.string.no_location_data_provided);
+                Log.wtf(TAG, errorMessage);
+                deliverResultToReceiver(Constants.FAILURE_RESULT, errorMessage);
+                return;
+            }
+        }else{
+            longitude = location.getLongitude();
+            latitude = location.getLatitude();
         }
 
         // Errors could still arise from using the Geocoder (for example, if there is no
@@ -93,8 +100,8 @@ public class FetchAddressIntentService extends IntentService {
             // surrounding the given latitude and longitude. The results are a best guess and are
             // not guaranteed to be accurate.
             addresses = geocoder.getFromLocation(
-                    location.getLatitude(),
-                    location.getLongitude(),
+                    latitude,
+                    longitude,
                     // In this sample, we get just a single address.
                     1);
         } catch (IOException ioException) {
@@ -105,8 +112,8 @@ public class FetchAddressIntentService extends IntentService {
             // Catch invalid latitude or longitude values.
             errorMessage = getString(R.string.invalid_lat_long_used);
             Log.e(TAG, errorMessage + ". " +
-                    "Latitude = " + location.getLatitude() +
-                    ", Longitude = " + location.getLongitude(), illegalArgumentException);
+                    "Latitude = " + latitude +
+                    ", Longitude = " + longitude, illegalArgumentException);
         }
 
         // Handle case where no address was found.

@@ -12,14 +12,14 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DBOpenHelper extends SQLiteOpenHelper{
 
     DBOpenHelper(Context context) {
-        super(context, "checkin.db", null, 1);
+        super(context, "mydailypath.db", null, 1);
         //context, name of db file, cursor factory, version of database
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("create table checkin (_id integer primary key autoincrement, name text, longitude text, latitude text, time text, address text) ");
-        db.execSQL("create table marker  (_id integer primary key autoincrement, name text, longitude text, latitude text) ");
+        db.execSQL("create table checkin  (_id integer primary key autoincrement, time text, longitude text, latitude text, location_id integer) ");
+        db.execSQL("create table location (_id integer primary key autoincrement, name text, longitude text, latitude text, address text) ");
     }
 
     @Override

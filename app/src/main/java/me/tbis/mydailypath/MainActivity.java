@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
     /**
      * Represents a geographical location.
      */
-    private Location mCurrentLocation; //I think it's the same thing as mLastLocation
+    private Location mCurrentLocation;
 
     /**
      * The formatted location address.
@@ -131,9 +131,6 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
      * Receiver registered with this activity to get the response from FetchAddressIntentService.
      */
     private AddressResultReceiver mResultReceiver;
-
-    //the custom name get from call back
-    private String custom_name;
 
     private TextView textView; //show GPS coordinate
     private TextView mLocationAddressTextView; //show address
@@ -178,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         mCheckinList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
-                checkInMethods.delete(list.get(i).get("_id"));
+                checkInMethods.delCheckin(list.get(i).get("_id"));
                 list.remove(i);
                 adapter.notifyDataSetChanged();
                 return true;
@@ -222,24 +219,47 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         fab2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                MyDialog myDialog = new MyDialog();
-                myDialog.show(getFragmentManager());
+                startCheckIn();
             }
         });
     }
 
+    private void startCheckIn(){
+        Map<String, String> map = checkInMethods.findLocation(mCurrentLocation.getLongitude(),
+                mCurrentLocation.getLatitude());
+        long location_id = Long.parseLong(map.get("_id"));
+
+        if(location_id == -1){
+            MyDialog myDialog = new MyDialog();
+            myDialog.show(getFragmentManager());
+        }else{
+            if(isFabOpen){
+                animateFAB();
+            }
+            String location_name = map.get("name");
+            checkIn(location_name, location_id);
+        }
+    }
+
+    private void checkIn(String customName, long location_id){
+        SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
+        String date = sDateFormat.format(new java.util.Date());
+
+        long _id = checkInMethods.addCheckin(date, mCurrentLocation.getLongitude() + "",
+                mCurrentLocation.getLatitude() + "", location_id);
+        UpdateListView(_id, customName, date);
+        showSnackbar("Check in successfully");
+    }
+
     //implement the call back fun
     public void onDialogClick(String customName){
-        custom_name = customName;
         if(isFabOpen){
             animateFAB();
         }
-        SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
-        String date = sDateFormat.format(new java.util.Date());
-        long _id = checkInMethods.addCheckin(custom_name, mCurrentLocation.getLongitude() + "", mCurrentLocation.getLatitude() + "",
-                date, mAddressOutput);
-        UpdateListView(_id, custom_name, date);
-        showSnackbar("Check in successfully");
+
+        long location_id = checkInMethods.addLocation(customName, mCurrentLocation.getLongitude(),
+                mCurrentLocation.getLatitude(), mAddressOutput);
+        checkIn(customName, location_id);
     }
 
     @Override
@@ -624,8 +644,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_checkin) {
-            MyDialog myDialog = new MyDialog();
-            myDialog.show(getFragmentManager());
+            startCheckIn();
             return true;
         }else if(id == R.id.action_map){
             showMap();
