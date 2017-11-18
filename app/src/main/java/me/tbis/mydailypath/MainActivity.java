@@ -182,6 +182,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
             }
         });
 
+        //receive address
         mResultReceiver = new AddressResultReceiver(new Handler());
 
         // Set defaults, then update using values stored in the Bundle.
