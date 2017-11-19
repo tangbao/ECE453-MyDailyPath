@@ -135,7 +135,7 @@ class CheckInMethods {
         return time;
     }
 
-    private double getDistance(double long1, double lat1, double long2, double lat2) {
+    double getDistance(double long1, double lat1, double long2, double lat2) {
         double a, b, R;
         R = 6378137; // 地球半径
         lat1 = lat1 * Math.PI / 180.0;

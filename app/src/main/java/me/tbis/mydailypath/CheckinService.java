@@ -71,6 +71,9 @@ public class CheckinService extends Service {
 
     private AlarmReceiver alarmReceiver;
 
+    private double route;
+    private Location mLastLocation;
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -89,6 +92,8 @@ public class CheckinService extends Service {
         alarmReceiver = new AlarmReceiver();
         IntentFilter filter = new IntentFilter(ACTION);
         registerReceiver(alarmReceiver, filter);
+
+        route = 0.0;
 
         prepareLocationUpdate();
 
@@ -143,7 +148,17 @@ public class CheckinService extends Service {
             public void onLocationResult(LocationResult locationResult) {
                 super.onLocationResult(locationResult);
 
+                mLastLocation = mCurrentLocation;
                 mCurrentLocation = locationResult.getLastLocation();
+                if(mLastLocation != null && mCurrentLocation != null){
+                    route = route + checkInMethods.getDistance(mLastLocation.getLongitude(), mLastLocation.getLatitude(),
+                            mCurrentLocation.getLongitude(), mCurrentLocation.getLatitude());
+                    if(route>=100.0){
+                        startCheckIn();
+                        route = 0.0;
+                    }
+                }
+
                 // Determine whether a Geocoder is available.
                 if (!Geocoder.isPresent()) {
                     return;
@@ -241,8 +256,6 @@ public class CheckinService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d("Service", "received");
-            Log.e("Current Location", mCurrentLocation.toString());
-            Log.e("Current Address", mAddressOutput);
 
             startCheckIn();
 
@@ -257,7 +270,7 @@ public class CheckinService extends Service {
                 mCurrentLocation.getLatitude());
         long location_id = Long.parseLong(map.get("_id"));
 
-        String location_name = "Auto check-in";
+        String location_name = "Auto Checkin";
         if(location_id != -1){
             location_name = map.get("name");
         }else{
