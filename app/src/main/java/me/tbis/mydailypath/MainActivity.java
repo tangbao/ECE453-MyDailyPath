@@ -1,8 +1,10 @@
 package me.tbis.mydailypath;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Geocoder;
@@ -65,12 +67,13 @@ import java.util.Locale;
 import java.util.Map;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static me.tbis.mydailypath.Constants.FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS;
+import static me.tbis.mydailypath.Constants.UPDATE_INTERVAL_IN_MILLISECONDS;
 
 public class MainActivity extends AppCompatActivity implements MyDialog.Callback{
+
     private static final String TAG = MainActivity.class.getSimpleName();
-
     private static final int REQUEST_PERMISSIONS_REQUEST_CODE = 34;
-
     private static final String LOCATION_ADDRESS_KEY = "location-address";
 
     /**
@@ -78,58 +81,18 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
      */
     private static final int REQUEST_CHECK_SETTINGS = 0x1;
 
-    /**
-     * The desired interval for location updates. Inexact. Updates may be more or less frequent.
-     */
-    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
-
-    /**
-     * The fastest rate for active location updates. Exact. Updates will never be more frequent
-     * than this value.
-     */
-    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
-            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
-
     // Keys for storing activity state in the Bundle.
     private final static String KEY_LOCATION = "location";
 
     //Provides the entry point to the Fused Location Provider API.
     private FusedLocationProviderClient mFusedLocationClient;
-
-    /**
-     * Provides access to the Location Settings API.
-     */
     private SettingsClient mSettingsClient;
-
-    /**
-     * Stores parameters for requests to the FusedLocationProviderApi.
-     */
     private LocationRequest mLocationRequest;
-
-    /**
-     * Stores the types of location services the client is interested in using. Used for checking
-     * settings to determine if the device has optimal location settings.
-     */
     private LocationSettingsRequest mLocationSettingsRequest;
-
-    /**
-     * Callback for Location events.
-     */
     private LocationCallback mLocationCallback;
-
-    /**
-     * Represents a geographical location.
-     */
     private Location mCurrentLocation;
 
-    /**
-     * The formatted location address.
-     */
     private String mAddressOutput;
-
-    /**
-     * Receiver registered with this activity to get the response from FetchAddressIntentService.
-     */
     private AddressResultReceiver mResultReceiver;
 
     private TextView textView; //show GPS coordinate
@@ -145,6 +108,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
     private Boolean isFabOpen = false;
     private FloatingActionButton fab,fab1,fab2;
     private Animation fab_open,fab_close,rotate_forward,rotate_backward;
+
+    private UpdateUIReceiver updateUIReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -181,6 +146,10 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
                 return true;
             }
         });
+
+        updateUIReceiver = new UpdateUIReceiver();
+        IntentFilter filter = new IntentFilter(Constants.ACTION_UPDATEUI);
+        registerReceiver(updateUIReceiver, filter);
 
         //receive address
         mResultReceiver = new AddressResultReceiver(new Handler());
@@ -270,6 +239,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
             requestPermissions();
         } else {
             startLocationUpdates();
+            Intent intent = new Intent(this, CheckinService.class);
+            startService(intent);
         }
         updateLocationUI();
     }
@@ -348,6 +319,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
                         mFusedLocationClient.requestLocationUpdates(mLocationRequest,
                                 mLocationCallback, Looper.myLooper());
                         updateLocationUI();
+                        Intent intent = new Intent(MainActivity.this, CheckinService.class);
+                        startService(intent);
                     }
                 })
                 .addOnFailureListener(this, new OnFailureListener() {
@@ -464,10 +437,25 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         }
     }
 
+    public class UpdateUIReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d("UpdateUIReceiver", "received");
+            Map<String, String> map = new HashMap<>();
+            map.put("_id", intent.getLongExtra("_id", -1)+"");
+            map.put("name", intent.getStringExtra("name"));
+            map.put("time", intent.getStringExtra("time"));
+            map.put("latitude", intent.getStringExtra("latitude"));
+            map.put("longitude", intent.getStringExtra("longitude"));
+            map.put("address", intent.getStringExtra("address"));
+            list.add(map);
+            adapter.notifyDataSetChanged();
+        }
+    }
+
     //store values to instance
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-
         // Save the address string.
         savedInstanceState.putString(LOCATION_ADDRESS_KEY, mAddressOutput);
         savedInstanceState.putParcelable(KEY_LOCATION, mCurrentLocation);
@@ -543,6 +531,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
             } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Permission granted.
                 startLocationUpdates();
+                Intent intent = new Intent(MainActivity.this, CheckinService.class);
+                startService(intent);
             } else {
                 // Permission denied.
                 showSnackbar(R.string.permission_denied_explanation, R.string.settings,

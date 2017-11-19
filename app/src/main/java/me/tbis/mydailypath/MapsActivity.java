@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static me.tbis.mydailypath.Constants.FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS;
+import static me.tbis.mydailypath.Constants.UPDATE_INTERVAL_IN_MILLISECONDS;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback , MyDialog.Callback{
 
@@ -72,9 +74,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationSettingsRequest mLocationSettingsRequest;
     private LocationCallback mLocationCallback;
     private Location mCurrentLocation;
-    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
-    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
-            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
 
     private List<Marker> markers;
     private Marker currentPopUpMarker;

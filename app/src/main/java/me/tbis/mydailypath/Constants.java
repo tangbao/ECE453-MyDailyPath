@@ -10,6 +10,11 @@ final class Constants {
 
     static final int FAILURE_RESULT = 1;
 
+    static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
+
+    static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
+            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
+
     private static final String PACKAGE_NAME = "me.tbis.mydailypath";
 
     static final String RECEIVER = PACKAGE_NAME + ".RECEIVER";
@@ -21,4 +26,6 @@ final class Constants {
     static final String LOCATION_DATA_LONGITUDE = PACKAGE_NAME + ".LOCATION_DATA_LONGITUDE";
 
     static final String LOCATION_DATA_LATITUDE = PACKAGE_NAME + ".LOCATION_DATA_LATITUDE";
+
+    static final String ACTION_UPDATEUI = PACKAGE_NAME + ".UPDATE_UI";
 }
