@@ -171,6 +171,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng loc_now = new LatLng(intent.getDoubleExtra("weidu",0), intent.getDoubleExtra("jingdu",0));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(loc_now, 10));
 
+        //add markers
         List<Map<String, String>> list = checkInMethods.getAllLocation();
         for(int i = 0; i<list.size(); i++){
             LatLng latLng = new LatLng(Double.parseDouble(list.get(i).get("latitude")), Double.parseDouble(list.get(i).get("longitude")));
@@ -187,6 +188,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    //show or hide info windows
     private void updateLocationUI(){
         if(mCurrentLocation!=null){
             Map<String, String> map = checkInMethods.findLocation(mCurrentLocation.getLongitude(),

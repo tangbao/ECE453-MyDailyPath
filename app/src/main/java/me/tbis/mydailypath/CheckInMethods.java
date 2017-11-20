@@ -34,7 +34,7 @@ class CheckInMethods {
         return _id;
     }
 
-    void delCheckin(String _id){
+    void delCheckin(String _id){ //delete check in. If it's the last one, delete the location as well
         SQLiteDatabase db = helper.getWritableDatabase();
         Cursor cursor = db.query("checkin", new String[]{"location_id"}, "_id=?", new String[]{_id}, null, null, null);
         String location_id = "";
@@ -74,7 +74,7 @@ class CheckInMethods {
         return checkins;
     }
 
-    Map<String, String> findLocation(double long1, double lati1){
+    Map<String, String> findLocation(double long1, double lati1){ //find if a Latlng is within a 30m circle of a location
         Map<String, String> map = new HashMap<>();
         String location_id = "-1";
         String location_name = "";
@@ -122,7 +122,7 @@ class CheckInMethods {
         return locations;
     }
 
-    String getLastTime(String _id){
+    String getLastTime(String _id){ //get the last time when the user check-in in the location
         SQLiteDatabase db = helper.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT time FROM checkin WHERE location_id = " + _id +
                 " ORDER BY _id DESC LIMIT 0, 1",null);

@@ -92,6 +92,9 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
     private LocationCallback mLocationCallback;
     private Location mCurrentLocation;
 
+    private double mCurrentLongitude;
+    private double mCurrentLatitude;
+
     private String mAddressOutput;
     private AddressResultReceiver mResultReceiver;
 
@@ -199,6 +202,9 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
                 mCurrentLocation.getLatitude());
         long location_id = Long.parseLong(map.get("_id"));
 
+        mCurrentLatitude = mCurrentLocation.getLatitude();
+        mCurrentLongitude = mCurrentLocation.getLongitude();
+
         if(location_id == -1){
             MyDialog myDialog = new MyDialog();
             myDialog.show(getFragmentManager());
@@ -215,8 +221,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
         String date = sDateFormat.format(new java.util.Date());
 
-        long _id = checkInMethods.addCheckin(date, mCurrentLocation.getLongitude() + "",
-                mCurrentLocation.getLatitude() + "", location_id);
+        long _id = checkInMethods.addCheckin(date, mCurrentLongitude + "",
+                mCurrentLatitude + "", location_id);
         UpdateListView(_id, customName, date);
         showSnackbar("Check in successfully");
     }
@@ -227,8 +233,8 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
             animateFAB();
         }
 
-        long location_id = checkInMethods.addLocation(customName, mCurrentLocation.getLongitude(),
-                mCurrentLocation.getLatitude(), mAddressOutput);
+        long location_id = checkInMethods.addLocation(customName, mCurrentLongitude,
+                mCurrentLatitude, mAddressOutput);
         checkIn(customName, location_id);
     }
 
@@ -361,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
                     ", Longitude: " + mCurrentLocation.getLongitude() );
         }
         if(mAddressOutput != null){
-            mLocationAddressTextView.setText(mAddressOutput);
+            mLocationAddressTextView.setText("Address: " + mAddressOutput);
         }
     }
 
@@ -559,11 +565,6 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * Shows a {@link Snackbar} using {@code text}.
-     *
-     * @param text The Snackbar text.
-     */
     private void showSnackbar(final String text) {
         //View container = findViewById(R.id.main_activity_container);
         //if (container != null) {
@@ -571,13 +572,6 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
         //}
     }
 
-    /**
-     * Shows a {@link Snackbar}.
-     *
-     * @param mainTextStringId The id for the string resource for the Snackbar text.
-     * @param actionStringId   The text of the action item.
-     * @param listener         The listener associated with the Snackbar action.
-     */
     private void showSnackbar(final int mainTextStringId, final int actionStringId,
                               View.OnClickListener listener) {
         //Snackbar.make(findViewById(android.R.id.content),
@@ -588,7 +582,7 @@ public class MainActivity extends AppCompatActivity implements MyDialog.Callback
     }
 
 
-    //===================================================
+    //=======================animation of FAB============================
     private void animateFAB(){
         if(isFabOpen){
             fab.startAnimation(rotate_backward);

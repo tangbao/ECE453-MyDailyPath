@@ -109,8 +109,9 @@ public class CheckinService extends Service {
             startLocationUpdates();
         }
 
+        //set timer
         AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        int Minutes = 15*1000;
+        int Minutes = 5*60*1000;
         long triggerAtTime = SystemClock.elapsedRealtime() + Minutes;
         Intent i = new Intent(ACTION);
         PendingIntent pi = PendingIntent.getBroadcast(this, 0, i, 0);
@@ -210,6 +211,7 @@ public class CheckinService extends Service {
                 });
     }
 
+    //start the service to find address
     private void startIntentService() {
         Intent intent = new Intent(this, FetchAddressIntentService.class);
         // Pass the result receiver as an extra to the service.
@@ -219,17 +221,14 @@ public class CheckinService extends Service {
     }
 
 
-    /**
-     * Receiver for data sent from FetchAddressIntentService.
-     */
+     // Receiver for data sent from FetchAddressIntentService.
     private class AddressResultReceiver extends ResultReceiver {
         AddressResultReceiver(Handler handler) {
             super(handler);
         }
 
-        /**
-         *  Receives data sent from FetchAddressIntentService and updates the UI in MainActivity.
-         */
+
+         // Receives data sent from FetchAddressIntentService and updates the UI
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
 
@@ -257,7 +256,7 @@ public class CheckinService extends Service {
         public void onReceive(Context context, Intent intent) {
             Log.d("Service", "received");
 
-            startCheckIn();
+            startCheckIn(); //when receive that 5min has passed
 
             //start service again
             Intent i = new Intent(context, CheckinService.class);
@@ -267,13 +266,13 @@ public class CheckinService extends Service {
 
     private void startCheckIn(){
         Map<String, String> map = checkInMethods.findLocation(mCurrentLocation.getLongitude(),
-                mCurrentLocation.getLatitude());
-        long location_id = Long.parseLong(map.get("_id"));
+                mCurrentLocation.getLatitude()); //find if it's in a location's 30m circle
+        long location_id = Long.parseLong(map.get("_id"));//get the id
 
         String location_name = "Auto Checkin";
-        if(location_id != -1){
+        if(location_id != -1){ //location found
             location_name = map.get("name");
-        }else{
+        }else{// not found, add a new location
             location_id = checkInMethods.addLocation(location_name, mCurrentLocation.getLongitude(),
                     mCurrentLocation.getLatitude(), mAddressOutput);
         }
@@ -285,7 +284,7 @@ public class CheckinService extends Service {
     private void checkIn(String customName, long location_id){
         Log.d("Checkin","yes");
         SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
-        String date = sDateFormat.format(new java.util.Date());
+        String date = sDateFormat.format(new java.util.Date());//get date
 
         long _id = checkInMethods.addCheckin(date, mCurrentLocation.getLongitude() + "",
                 mCurrentLocation.getLatitude() + "", location_id);
